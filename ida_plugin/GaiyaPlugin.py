@@ -1,3 +1,6 @@
+import idaapi
+import idc
+
 from idaapi import PluginForm
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
@@ -63,7 +66,7 @@ sig = {BEGIN}"name": "{SIG_NAME}",
        "date": "{DATE}",
        "code_sig_str": "{CODE_SIG}",
        "code_sig_start_ea": "{CODE_SIG_START_EA}",
-       "code_sig_end_ea": "{CODE_SIG_END_EA}",
+       "code_sig_end_ea": "{CODE_SIG_END_EA}"
        "func_sig_str": "{FUNC_SIG}",
        "func_sig_start_ea": "{FUNC_SIG_START_EA}",
        "func_sig_end_ea": "{FUNC_SIG_END_EA}",
@@ -228,5 +231,95 @@ sig = {BEGIN}"name": "{SIG_NAME}",
         self.output_le.setText(self.output)
 
 
-plg = GaiyaPluginFormClass()
-plg.Show("Gaiya Sig Generator")
+try:
+    class Gen_Menu_Context(idaapi.action_handler_t):
+        def __init__(self):
+            idaapi.action_handler_t.__init__(self)
+
+        @classmethod
+        def get_name(self):
+            return self.__name__
+
+        @classmethod
+        def get_label(self):
+            return self.label
+
+        @classmethod
+        def register(self, plugin, label):
+            self.plugin = plugin
+            self.label = label
+            instance = self()
+            return idaapi.register_action(idaapi.action_desc_t(
+                self.get_name(),  # Name. Acts as an ID. Must be unique.
+                instance.get_label(),  # Label. That's what users see.
+                instance  # Handler. Called when activated, and for updating
+            ))
+
+        @classmethod
+        def unregister(self):
+            """Unregister the action.
+            After unregistering the class cannot be used.
+            """
+            idaapi.unregister_action(self.get_name())
+
+        @classmethod
+        def activate(self, ctx):
+            # dummy method
+            return 1
+
+        @classmethod
+        def update(self, ctx):
+            if ctx.form_type == idaapi.BWN_DISASM:
+                return idaapi.AST_ENABLE_FOR_WIDGET
+            return idaapi.AST_DISABLE_FOR_WIDGET
+
+
+    class Gen(Gen_Menu_Context):
+        def activate(self, ctx):
+            self.plugin.run()
+            return 1
+except:
+    pass
+
+p_initialized = False
+
+
+class gaiyasigen_t(idaapi.plugin_t):  # pragma: no cover
+    comment = ""
+    help = "todo"
+    wanted_name = "GaiyaSigGen"
+    wanted_hotkey = "Ctrl-Alt-G"
+    flags = idaapi.PLUGIN_KEEP
+
+    def init(self):
+        global p_initialized
+
+        # register popup menu handlers
+        try:
+            Gen.register(self, "GaiyaSigGen")
+        except:
+            pass
+
+        if p_initialized is False:
+            p_initialized = True
+            idaapi.register_action(idaapi.action_desc_t(
+                "GaiyaSigGen",
+                "Gaiya sig generator",
+                Gen(),
+                None,
+                None,
+                0))
+            idaapi.attach_action_to_menu("Gen", "GaiyaSigGen", idaapi.SETMENU_APP)
+
+        return idaapi.PLUGIN_KEEP
+
+    def term(self):
+        pass
+
+    def run(self, arg):
+        plg = GaiyaPluginFormClass()
+        plg.Show("Gaiya Sig Generator")
+
+
+def PLUGIN_ENTRY():  # pragma: no cover
+    return gaiyasigen_t()
