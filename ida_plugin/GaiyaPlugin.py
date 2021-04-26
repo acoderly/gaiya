@@ -66,7 +66,7 @@ sig = {BEGIN}"name": "{SIG_NAME}",
        "date": "{DATE}",
        "code_sig_str": "{CODE_SIG}",
        "code_sig_start_ea": "{CODE_SIG_START_EA}",
-       "code_sig_end_ea": "{CODE_SIG_END_EA}"
+       "code_sig_end_ea": "{CODE_SIG_END_EA}",
        "func_sig_str": "{FUNC_SIG}",
        "func_sig_start_ea": "{FUNC_SIG_START_EA}",
        "func_sig_end_ea": "{FUNC_SIG_END_EA}",
