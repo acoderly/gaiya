@@ -323,3 +323,5 @@ class gaiyasigen_t(idaapi.plugin_t):  # pragma: no cover
 
 def PLUGIN_ENTRY():  # pragma: no cover
     return gaiyasigen_t()
+# /Applications/IDA Pro 7.0/ida64.app/Contents/MacOS/plugins/GaiyaPlugin.py
+# /Applications/IDA Pro 7.0/ida.app/Contents/MacOS/plugins/GaiyaPlugin.py
