@@ -21,7 +21,7 @@ result_path = os.path.join(log_path, "result.txt")
 
 
 def load_all_sig():
-    sig_lst = []
+    ret = []
     paths = [os.path.join(os.path.dirname(__file__), "sigs")]
     modules_to_load = []
     for finder, name, _ in pkgutil.iter_modules(paths):
@@ -31,10 +31,10 @@ def load_all_sig():
     for (name, module) in sorted(modules_to_load, key=lambda x: x[0]):
         try:
             sig = module.load_module(name)
-            sig_lst.append(sig)
+            ret.append(sig)
         except Exception as e:
             pass
-    return sig_lst
+    return ret
 
 
 def create_logger():
@@ -58,7 +58,7 @@ def get_target_func(sig):
     target_func = []
     for func_ea in idautils.Functions():
         flags = idc.GetFunctionFlags(func_ea)
-        if flags & FUNC_LIB or flags & FUNC_THUNK:
+        if flags & idaapi.FUNC_LIB or flags & idaapi.FUNC_THUNK:
             continue
         dism_addr = list(idautils.FuncItems(func_ea))
         for idx in range(len(dism_addr)):
@@ -74,7 +74,6 @@ def get_target_func(sig):
 
 
 def get_target_code(sig, target_func):
-    file_name = idaapi.get_root_filename()
     # logger.info("[>>>>>>] process {} start".format(file_name))
     sig_name = sig["name"]
     code_sig = sig["code_sig"]
@@ -103,13 +102,10 @@ def get_target_code(sig, target_func):
                             with open(result_path, "a") as f:
                                 json.dump(result, f)
                                 f.write(os.linesep)
-                            # logger.info("{}_{}_{}".format(current_file, ip, port))
-                        # TODO How to log the result.
                         else:
                             pass
             except IndexError:
                 break
-    # logger.info("[>>>>>>] process {} end".format(file_name))
     return ret
 
 
@@ -129,9 +125,9 @@ def parser(sig_lst):
 
 sig_lst = load_all_sig()
 logger = create_logger()
-
-idaapi.autoWait()
-
-parser(sig_lst)
-
+logger.info("Run")
+# idaapi.autoWait()
+#
+# parser(sig_lst)
+#
 idc.Exit(0)
