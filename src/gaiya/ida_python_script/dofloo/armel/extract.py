@@ -126,8 +126,8 @@ def parser(sig_lst):
 sig_lst = load_all_sig()
 logger = create_logger()
 logger.info("Run")
-# idaapi.autoWait()
-#
-# parser(sig_lst)
-#
+idaapi.autoWait()
+
+parser(sig_lst)
+
 idc.Exit(0)
