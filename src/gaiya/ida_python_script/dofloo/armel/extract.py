@@ -91,12 +91,12 @@ def get_target_code(sig, target_func):
                 if dism_str == code_sig:
                     print("[******] get_target_code matched.")
                     parser = sig["parser"]
-                    if parser != None:
+                    if parser is not None:
                         ret, current_file, ip, port = parser(dism_addr[idx:idx + code_len])
                         if ret is not False:
                             result = {
-                                "current_file": current_file,
-                                "ip": ip,
+                                "file_name": current_file,
+                                "server": ip,
                                 "port": port
                             }
                             with open(result_path, "a") as f:
