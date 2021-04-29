@@ -38,7 +38,7 @@ def get_arch(file_abs_path):
     arch = {
         lief.ELF.ARCH.i386: "x86",
         lief.ELF.ARCH.x86_64: "x86_64",
-        lief.ELF.ARCH.ARM: "arm",
+        lief.ELF.ARCH.ARM: "armel",
         lief.ELF.ARCH.MIPS: "mips",
     }[binary.header.machine_type]
     return arch
@@ -97,6 +97,7 @@ for family_name, data in family_dispatch_map.items():
     if family_name not in ability:
         print(f"Can not process family: {family_name}")
         continue
-    print(family_name, data)
-# obj = mf.get("dofloo")
-# obj.run()
+    # print(family_name, data)
+    obj = mf.get(family_name)
+
+    obj.run(data)
