@@ -1,10 +1,9 @@
 import idaapi
 import idc
-
+import time
 from idaapi import PluginForm
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
-import time
 
 
 class ScrollWidget(QtWidgets.QWidget):
@@ -12,9 +11,9 @@ class ScrollWidget(QtWidgets.QWidget):
     def __init__(self, parent=None, frame=QtWidgets.QFrame.Box):
         super(ScrollWidget, self).__init__()
 
-        #   Container Widget
+        # Container Widget
         widget = QtWidgets.QWidget()
-        #   Layout of Container Widget
+        # Layout of Container Widget
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         widget.setLayout(self.layout)
@@ -71,8 +70,86 @@ sig = {BEGIN}"name": "{SIG_NAME}",
        "func_sig_start_ea": "{FUNC_SIG_START_EA}",
        "func_sig_end_ea": "{FUNC_SIG_END_EA}",
        "parser": sig_parser{END}
-{EXTRACT_STR}
+{HELPER_CODE_STR}
         """
+        self.HELPER_CODE_STR = """
+####################################################################################################################
+####################################################################################################################
+####################################################################################################################
+g_sigs = [sig, ]
+def get_target_func(sig):
+    sig_name = sig["name"]
+    func_sig = sig["func_sig_str"]
+    func_ea = sig["func_sig_start_ea"]
+    func_len = len(func_sig.split("_"))
+    func_sig = "".join(func_sig.split("_"))
+    print("[******] The sig_name:<{}> func_sig:<{}> func_ea:<{}>".format(sig_name, func_sig, func_ea))
+
+    target_func = []
+    for func_ea in idautils.Functions():
+        flags = idc.GetFunctionFlags(func_ea)
+        if flags & FUNC_LIB or flags & FUNC_THUNK:
+            continue
+        dism_addr = list(idautils.FuncItems(func_ea))
+        for idx in range(len(dism_addr)):
+            try:
+                dis_str = "".join(map(idc.GetMnem, dism_addr[idx:idx + func_len]))
+                if dis_str == func_sig:
+                    target_func.append(func_ea)
+                    break
+            except IndexError:
+                break
+
+    return target_func
+
+
+def get_target_code(sig, target_func):
+    file_name = idaapi.get_root_filename()
+    # logger.info("[>>>>>>] process {} start".format(file_name))
+    sig_name = sig["name"]
+    code_sig = sig["code_sig_str"]
+    code_len = len(code_sig.split("_"))
+    code_ea = sig["code_sig_start_ea"]
+    code_sig = "".join(code_sig.split("_"))
+    print("[******] The sig_name:<{}> code_sig:<{}> code_ea:<{}>".format(sig_name, code_sig, code_ea))
+    ret = False
+    print("[******] get_target_code param target_func:{}".format(target_func))
+    for func_ea in target_func:
+        dism_addr = list(idautils.FuncItems(func_ea))
+        for idx in range(len(dism_addr)):
+            try:
+                dism_str = "".join(map(idc.GetMnem, dism_addr[idx:idx + code_len]))
+                if dism_str == code_sig:
+                    print("[******] get_target_code matched.")
+                    parser = sig["parser"]
+                    if parser != None:
+                        ret, current_file, ip, port = parser(dism_addr[idx:idx + code_len])
+                        if ret is not False:
+                            print("{}_{}_{}".format(current_file.split(".")[0], ip, port))
+                        # TODO How to log the result.
+            except IndexError:
+                break
+    # logger.info("[>>>>>>] process {} end".format(file_name))
+    return ret
+
+
+def parser():
+    for sig in g_sigs:
+        target_func = get_target_func(sig)
+        print("[******] target_func:{}".format(target_func))
+        for item in target_func:
+            print("[******] target_func_name:{}".format(idc.GetFunctionName(item)))
+        ret = get_target_code(sig, target_func)
+        # TODO Need log fail stuff.
+        if ret is True:
+            print("[******] process success.")
+        else:
+            print("[******] process failed.")
+
+
+idaapi.autoWait()
+parser()
+"""
 
     def OnCreate(self, form):
         """
@@ -101,12 +178,11 @@ sig = {BEGIN}"name": "{SIG_NAME}",
         options |= PluginForm.WOPN_CENTERED
         super(GaiyaPluginFormClass, self).Show(caption, options)
 
-    def server_config_layout(self, outer_layout):
-        server_groupbox = QtWidgets.QGroupBox()
-        # server_groupbox.setTitle('Server Configuration')
-        vbox = QtWidgets.QVBoxLayout(server_groupbox)
+    def gaiya_layout(self, outer_layout):
+        groupbox = QtWidgets.QGroupBox()
+        vbox = QtWidgets.QVBoxLayout(groupbox)
 
-        grid_layout = QtWidgets.QGridLayout(server_groupbox)
+        grid_layout = QtWidgets.QGridLayout(groupbox)
         vbox.addLayout(grid_layout)
 
         self.sig_name_le = QtWidgets.QLineEdit()
@@ -143,14 +219,10 @@ sig = {BEGIN}"name": "{SIG_NAME}",
         grid_layout.setSpacing(10)
         grid_layout.setContentsMargins(10, 10, 10, 10)
 
-        outer_layout.addWidget(server_groupbox)
+        outer_layout.addWidget(groupbox)
 
     def view_configuration_info(self):
         container = QtWidgets.QVBoxLayout()
-
-        # label = QtWidgets.QLabel('Sig Generator')
-        # label.setStyleSheet('font: 18px;')
-        # container.addWidget(label)
 
         layout = QtWidgets.QHBoxLayout()
         self.message = QtWidgets.QLabel()
@@ -161,13 +233,9 @@ sig = {BEGIN}"name": "{SIG_NAME}",
         gen_button.clicked.connect(self.gen_output)
 
         scroll_layout = ScrollWidget(frame=QtWidgets.QFrame.NoFrame)
-        self.server_config_layout(scroll_layout)
-
+        self.gaiya_layout(scroll_layout)
         container.addWidget(scroll_layout)
-        # container.addStretch()
         container.addLayout(layout)
-
-        # save_button.clicked.connect(self.save_config)
 
         return container
 
@@ -227,7 +295,7 @@ sig = {BEGIN}"name": "{SIG_NAME}",
                                               FUNC_SIG_START_EA=hex(self.func_start_ea),
                                               FUNC_SIG_END_EA=hex(self.func_end_ea),
                                               END="}",
-                                              EXTRACT_STR="")
+                                              HELPER_CODE_STR=self.HELPER_CODE_STR)
         self.output_le.setText(self.output)
 
 
@@ -323,5 +391,5 @@ class gaiyasigen_t(idaapi.plugin_t):  # pragma: no cover
 
 def PLUGIN_ENTRY():  # pragma: no cover
     return gaiyasigen_t()
-# /Applications/IDA Pro 7.0/ida64.app/Contents/MacOS/plugins/GaiyaPlugin.py
-# /Applications/IDA Pro 7.0/ida.app/Contents/MacOS/plugins/GaiyaPlugin.py
+# /Applications/IDAPro7.0/ida64.app/Contents/MacOS/plugins/GaiyaPlugin.py
+# /Applications/IDAPro7.0/ida.app/Contents/MacOS/plugins/GaiyaPlugin.py

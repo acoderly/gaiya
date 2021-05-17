@@ -33,18 +33,6 @@ def get_elf_arch(file_abs_path):
     return arch
 
 
-def get_gaiya_ability():
-    family_ability = []
-    path = os.path.dirname(os.path.abspath(__file__))
-    family_dir = os.path.join(path, "gaiya", "ida_python_script")
-    for family in os.listdir(family_dir):
-        abs_path = os.path.join(family_dir, family)
-        if not os.path.isdir(abs_path):
-            continue
-        family_ability.append(family)
-    return family_ability
-
-
 def init_family_dispatch_map():
     def process_yara_include():
         lines = []
@@ -85,12 +73,12 @@ def init_family_dispatch_map():
 
 family_dispatch_map = {}
 init_family_dispatch_map()
-ability = get_gaiya_ability()
-
-print(f"Gaiya's current ability:{ability}")
 
 mf = MalwareFamily()
 mf.initialize()
+ability = mf.get_all_registered_family()
+print(f"Gaiya's current ability:{ability}")
+print((mf.get_all_registered_family()))
 for family_name, data in family_dispatch_map.items():
     if family_name not in ability:
         print(f"Can not process family: {family_name}")
