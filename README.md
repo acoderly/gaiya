@@ -8,3 +8,8 @@ Then use idapython script to extract the C&C.
 
 # TODO
 Need more words...
+
+# Bugs
+ARM
+IDA 7.0  10 40 2D E9 STMFD SP! {R4,LR}
+IDA 7.2. 10 40 2D E9 PUSH {R4,LR}
